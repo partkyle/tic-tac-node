@@ -37,5 +37,19 @@ app.get('/', function(req, res){
   });
 });
 
+app.get('/game/new', function (req, res) {
+  res.json(
+    {
+      gameId: 1,
+      board: [
+        [null, null, null],
+        [null, null, null],
+        [null, null, null]
+      ]
+    }
+  );
+});
+
+
 app.listen(3000);
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
