@@ -40,7 +40,7 @@ app.get('/', function(req, res){
 
 app.get('/start/:host', function (req, res) {
   var options = {
-    host: params.host,
+    host: req.params.host,
     path: '/game/new'
   };
 
