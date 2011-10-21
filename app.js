@@ -41,11 +41,15 @@ app.get('/', function(req, res){
 app.get('/start/:host', function (req, res) {
   var options = {
     host: req.params.host,
-    path: '/game/new'
+    port: 3000,
+    path: '/game/new',
+    method: 'GET'
   };
 
   http.get(options, function (resp) {
-    console.log(resp);
+    resp.on('data', function (data) {
+      var json = JSON.parse(data);
+    });
   })
 });
 
