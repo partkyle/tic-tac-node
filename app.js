@@ -9,6 +9,8 @@ var app = module.exports = express.createServer();
 
 var AI = require('./lib/tic-tac.js').AI;
 
+var http = require('http');
+
 // Configuration
 
 app.configure(function(){
@@ -31,10 +33,20 @@ app.configure('production', function(){
 // Routes
 
 app.get('/', function(req, res){
-  console.log(AI);
   res.render('index', {
     title: 'Express'
   });
+});
+
+app.get('/start/:host', function (req, res) {
+  var options = {
+    host: params.host,
+    path: '/game/new'
+  };
+
+  http.get(options, function (resp) {
+    console.log(resp);
+  })
 });
 
 app.get('/game/new', function (req, res) {
@@ -49,7 +61,6 @@ app.get('/game/new', function (req, res) {
     }
   );
 });
-
 
 app.listen(3000);
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
