@@ -38,10 +38,11 @@ app.get('/', function(req, res){
   });
 });
 
-app.get('/start/:host', function (req, res) {
+// Route for starting a game with another server.
+app.get('/start/:host/:port?', function (req, res) {
   var options = {
     host: req.params.host,
-    port: 3000,
+    port: req.params.port || 3000,
     path: '/game/new',
     method: 'GET'
   };
@@ -66,5 +67,5 @@ app.get('/game/new', function (req, res) {
   );
 });
 
-app.listen(3000);
+app.listen(process.argv[2] || 3000);
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
