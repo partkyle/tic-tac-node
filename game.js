@@ -1,11 +1,16 @@
-var name = require('node-uuid')();
-
+var uuid = require('node-uuid');
+var name = uuid();
 var io = require('socket.io-client');
-
+var AI = require('./lib/tic-tac').AI;
 var socket = io.connect('http://localhost:3000');
 
-socket.emit('new game', {name: name});
+socket.emit('init', {name: name});
 
 socket.on('your turn', function(data) {
-  console.log(data);
+  console.log(data.board);
+
+  socket.emit('move', {
+    gameId: data.gameId,
+    move: AI.move(data.board)
+  });
 });
