@@ -11,6 +11,8 @@ var AI = require('./lib/tic-tac.js').AI;
 
 var http = require('http');
 
+var uuid = require('node-uuid');
+
 // Configuration
 
 app.configure(function(){
@@ -51,7 +53,7 @@ app.get('/start/:host/:port?', function (req, res) {
     resp.on('data', function (data) {
       var json = JSON.parse(data);
     });
-  })
+  });
 });
 
 app.get('/game/new', function (req, res) {
