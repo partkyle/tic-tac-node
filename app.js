@@ -13,6 +13,8 @@ var http = require('http');
 
 var uuid = require('node-uuid');
 
+var server_name = uuid();
+
 // Configuration
 
 app.configure(function(){
