@@ -6,5 +6,6 @@
       "express": "2.4.7"
     , "jade": ">= 0.0.1"
     , "node-uuid": "1.2.0"
+    , "jasmine-node": "1.0.12"
   }
 }
