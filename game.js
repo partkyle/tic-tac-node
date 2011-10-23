@@ -12,7 +12,7 @@ socket.on('status', function(data) {
   }
 });
 
-socket.on('your turn', function(data) {
+socket.on('turn', function(data) {
   console.log(data.board);
 
   socket.emit('move', {

@@ -54,7 +54,7 @@ io.sockets.on('connection', function(socket) {
         [null,null,null],
         [null,null,null] ]
     });
-    socket.emit('your turn', {
+    socket.emit('turn', {
       gameId: gameId,
       board: games.get(gameId).board
     });
