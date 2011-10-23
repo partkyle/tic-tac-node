@@ -6,6 +6,12 @@ var socket = io.connect('http://localhost:3000');
 
 socket.emit('init', {name: name});
 
+socket.on('status', function(data) {
+  if (data.status == 'success') {
+    socket.emit('queue');
+  }
+});
+
 socket.on('your turn', function(data) {
   console.log(data.board);
 
