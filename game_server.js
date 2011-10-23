@@ -36,10 +36,17 @@ app.get('/', function(req, res){
   });
 });
 
+// socket config
 io.sockets.on('connection', function(socket) {
   socket.on('init', function(data) {
     // socket has connected for the first time
-    servers.put(data.name, '');
+    servers.put(data.name, {socket: socket});
+
+    // tell the player that everything went ok
+    socket.emit('status', {status: 'success'});
+  });
+
+  socket.on('queue', function(data) {
     var gameId = uuid();
     games.put(gameId, {
       board: [
@@ -52,6 +59,7 @@ io.sockets.on('connection', function(socket) {
       board: games.get(gameId).board
     });
   });
+
   socket.on('move', function(data) {
     var game = games.get(data.gameId);
     game.board[data.move.y][data.move.x] = 'x';
