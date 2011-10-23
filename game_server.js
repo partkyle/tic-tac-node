@@ -53,15 +53,12 @@ io.sockets.on('connection', function(socket) {
     });
   });
   socket.on('move', function(data) {
-    console.log(data);
-    var board = games.get(data.gameId).board;
-    console.log(board);
-    board[data.move.y][data.move.x] = 'x';
-    games.put(data.gameId, board);
-    console.log(board);
+    var game = games.get(data.gameId);
+    game.board[data.move.y][data.move.x] = 'x';
+    games.put(data.gameId, game);
     socket.emit('your turn', {
       gameId: data.gameId,
-      board: board
+      board: game.board
     }); 
   });
   socket.on('new game', function(data) {
