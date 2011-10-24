@@ -4,4 +4,21 @@ html
     title= title
     link(rel='stylesheet', href='/stylesheets/bootstrap.min.css')
     link(rel='stylesheet', href='/stylesheets/style.css')
-  body!= body
+    script(type='text/javascript', src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js')
+    script(type='text/javascript', src='/scripts/underscore.js')
+  body
+    .topbar
+      .fill
+        .container
+          a.brand= title
+          ul.nav
+            a.active Home
+
+    .container
+      .content
+        .page-header
+          h1= title
+        .row
+          .span10!= body
+      footer
+        p &copy; Kyle Partridge 2011

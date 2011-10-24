@@ -1,10 +1,10 @@
-var uuid = require('node-uuid');
+var uuid    = require('node-uuid');
 var express = require('express');
-var app = module.exports = express.createServer();
-var io  = require('socket.io').listen(app);
-var store = require('./lib/Store').Store;
-var AI = require('./lib/tic-tac').AI;
-var _ = require('underscore')._;
+var app     = module.exports = express.createServer();
+var io      = require('socket.io').listen(app);
+var store   = require('./lib/Store').Store;
+var AI      = require('./lib/tic-tac').AI;
+var _       = require('underscore')._;
 
 var servers = store.index('servers'),
     games   = store.index('games'),
@@ -59,7 +59,7 @@ io.sockets.on('connection', function(socket) {
 
     // add them to the stats store if they aren't there
     if (!stats.get(data.name)) {
-      stats.put(data.name, {wins: 0});
+      stats.put(data.name, {name: data.name, wins: 0});
     }
 
     // tell the player that everything went ok
@@ -125,7 +125,7 @@ io.sockets.on('connection', function(socket) {
         });
       });
       _(watchers).forEach(function(watcher) {
-        watcher.socket.emit('stats', stats);
+        watcher.socket.emit('stats', getStats(stats));
       });
     } else {
       // find the other player
@@ -148,6 +148,18 @@ io.sockets.on('connection', function(socket) {
   socket.on('watch', function(data) {
     watchers.push({socket: socket});
     // give some intial stats
-    socket.emit('stats', stats.toJSON());
+    socket.emit('stats', getStats(stats));
   });
 });
+
+function getStats(stats) {
+  stats_array = [];
+  for (var name in stats.all()) {
+    console.log(name);
+    stats_array.push({
+      name: name,
+      wins: stats.get(name).wins
+    });
+  }
+  return {stats: stats_array};
+}
