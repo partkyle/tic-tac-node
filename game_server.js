@@ -97,7 +97,7 @@ io.sockets.on('connection', function(socket) {
 
     var winner = AI.getWinner(game.board);
     if (winner) {
-      _(game.players).each(function(player) {
+      _(game.players).forEach(function(player) {
         player.socket.emit('done', {
           win: player.character == winner,
           gameId: game.gameId,
