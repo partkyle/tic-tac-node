@@ -31,4 +31,8 @@ socket.on('done', function(data) {
     console.log('You lost game ' + data.gameId);
   }
   console.log(data.board);
+
+  setTimeout(function() {
+    socket.emit('queue', {name: name});
+  }, 200);
 });
