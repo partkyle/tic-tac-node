@@ -98,7 +98,11 @@ io.sockets.on('connection', function(socket) {
     var winner = AI.getWinner(game.board);
     if (winner) {
       _(game.players).each(function(player) {
-        player.socket.emit('done', {win: player.character == winner});
+        player.socket.emit('done', {
+          win: player.character == winner,
+          gameId: game.gameId,
+          board: game.board
+        });
       });
     } else {
       // find the other player

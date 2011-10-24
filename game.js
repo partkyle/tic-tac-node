@@ -25,5 +25,10 @@ socket.on('turn', function(data) {
 });
 
 socket.on('done', function(data) {
-  console.log(data.win);
+  if (data.win) {
+    console.log('You won game ' + data.gameId);
+  } else {
+    console.log('You lost game ' + data.gameId);
+  }
+  console.log(data.board);
 });
