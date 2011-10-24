@@ -8,7 +8,9 @@ socket.emit('init', {name: name});
 
 socket.on('status', function(data) {
   if (data.status == 'success') {
-    socket.emit('queue');
+    socket.emit('queue', {name: name});
+  } else {
+    console.log(data.status);
   }
 });
 
@@ -16,6 +18,7 @@ socket.on('turn', function(data) {
   console.log(data.board);
 
   socket.emit('move', {
+    name: name,
     gameId: data.gameId,
     move: AI.move(data.board)
   });

@@ -7,6 +7,9 @@ var store = require('./lib/Store').Store;
 var servers = store.index('servers'),
     games   = store.index('games');
 
+// Queue for managing players waiting to play
+var queue = [];
+
 // Configuration
 
 app.configure(function(){
@@ -47,27 +50,62 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('queue', function(data) {
-    var gameId = uuid();
-    games.put(gameId, {
-      board: [
-        [null,null,null],
-        [null,null,null],
-        [null,null,null] ]
-    });
-    socket.emit('turn', {
-      gameId: gameId,
-      board: games.get(gameId).board
-    });
+    var incoming = {name: data.name, socket:socket};
+    if (queue.length == 0) {
+      // add player to queue
+      queue.push(incoming);
+
+      // tell the player to wait for another game to start
+      socket.emit('status', {status: 'waiting'});
+    } else {
+      // if there is another player, notify them it is their turn
+      var player = queue.pop();
+
+      // set up the characters for each player
+      player.character = 'x';
+      incoming.character = 'o';
+
+      var gameId = uuid();
+
+      var players = {};
+      players[player.name] = player;
+      players[incoming.name] = incoming;
+
+      // persist the game
+      games.put(gameId, {
+        gameId: gameId,
+        players: players,
+        board: [
+          [null,null,null],
+          [null,null,null],
+          [null,null,null] ]
+      });
+
+      player.socket.emit('turn', {
+        gameId: gameId,
+        board: games.get(gameId).board
+      });
+    }
   });
 
   socket.on('move', function(data) {
     var game = games.get(data.gameId);
-    game.board[data.move.y][data.move.x] = 'x';
+    game.board[data.move.y][data.move.x] = game.players[data.name].character;
     games.put(data.gameId, game);
-    socket.emit('your turn', {
+
+    // find the other player
+    var other;
+    for (var player in game.players) {
+      if (player != data.name) {
+        other = game.players[player];
+      }
+    }
+
+    // send "turn" event to other player
+    other.socket.emit('turn', {
       gameId: data.gameId,
       board: game.board
-    }); 
+    });
   });
   socket.on('new game', function(data) {
     console.log(data);
