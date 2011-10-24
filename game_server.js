@@ -7,10 +7,14 @@ var AI = require('./lib/tic-tac').AI;
 var _ = require('underscore')._;
 
 var servers = store.index('servers'),
-    games   = store.index('games');
+    games   = store.index('games'),
+    stats   = store.index('stats');
 
 // Queue for managing players waiting to play
 var queue = [];
+
+// List of people watching on the web
+var watchers = [];
 
 // Configuration
 
@@ -35,9 +39,15 @@ app.listen(process.argv[2] || 3000);
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
 
 // Routes
-app.get('/', function(req, res){
+app.get('/', function(req, res) {
   res.render('index', {
     title: 'Express'
+  });
+});
+
+app.get('/watch', function(req, res) {
+  res.render('watch', {
+    title: 'Watching the action'
   });
 });
 
@@ -46,6 +56,11 @@ io.sockets.on('connection', function(socket) {
   socket.on('init', function(data) {
     // socket has connected for the first time
     servers.put(data.name, {socket: socket});
+
+    // add them to the stats store if they aren't there
+    if (!stats.get(data.name)) {
+      stats.put(data.name, {wins: 0});
+    }
 
     // tell the player that everything went ok
     socket.emit('status', {status: 'success'});
@@ -97,12 +112,20 @@ io.sockets.on('connection', function(socket) {
 
     var winner = AI.getWinner(game.board);
     if (winner) {
+      // the game is finished
       _(game.players).forEach(function(player) {
+        var win = player.character == winner;
+        if (win) {
+          stats.get(player.name).wins++;
+        }
         player.socket.emit('done', {
-          win: player.character == winner,
+          win: win,
           gameId: game.gameId,
           board: game.board
         });
+      });
+      _(watchers).forEach(function(watcher) {
+        watcher.socket.emit('stats', stats);
       });
     } else {
       // find the other player
@@ -119,5 +142,12 @@ io.sockets.on('connection', function(socket) {
         board: game.board
       });
     }
+  });
+
+  // listen for people connecting from the web
+  socket.on('watch', function(data) {
+    watchers.push({socket: socket});
+    // give some intial stats
+    socket.emit('stats', stats.toJSON());
   });
 });
