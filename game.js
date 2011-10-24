@@ -23,3 +23,7 @@ socket.on('turn', function(data) {
     move: AI.move(data.board)
   });
 });
+
+socket.on('done', function(data) {
+  console.log(data.win);
+});
