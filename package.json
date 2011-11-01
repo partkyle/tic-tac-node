@@ -11,5 +11,6 @@
     , "socket.io": "0.8.5"
     , "socket.io-client": "0.8.5"
     , "underscore": "1.2.0"
+    , "mongoose": "2.3.7"
   }
 }
