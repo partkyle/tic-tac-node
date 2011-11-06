@@ -17,10 +17,12 @@ socket.on('status', function(data) {
 socket.on('turn', function(data) {
   console.log(data.board);
 
+  var move = AI.move(data.board, data.character);
+
   socket.emit('move', {
     name: name,
     gameId: data.gameId,
-    move: AI.move(data.board)
+    move: move
   });
 });
 
