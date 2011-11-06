@@ -20,5 +20,4 @@ var template = "\
 
 socket.on('stats', function(data) {
   $('#stats').html(_.template(template, data));
-  console.log(data);
 });

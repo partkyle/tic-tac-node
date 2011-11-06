@@ -6,8 +6,7 @@ var store   = require('./lib/Store').Store;
 var AI      = require('./lib/tic-tac').AI;
 var _       = require('underscore')._;
 
-var servers = store.index('servers'),
-    stats   = store.index('stats');
+var servers = store.index('servers');
 
 var models = require('./lib/models');
 var mongoose = require('mongoose');
@@ -82,14 +81,10 @@ io.sockets.on('connection', function(socket) {
 
           var game = new Game();
           game.players.push({character: 'x', player:queued_player._id});
-          console.log(queued_player);
           game.players.push({character: 'o', player:player._id});
 
-          game.save(function(err) {
-            console.log(err);
-          });
+          game.save();
 
-          console.log(game);
           var player_socket = servers.get(queued_player._id).socket;
           player_socket.emit('turn', {
             gameId: game._id,
@@ -114,14 +109,13 @@ io.sockets.on('connection', function(socket) {
         game.board[data.move.y][data.move.x] = game_player.character;
         game.markModified('board');
         game.save(function (err) {
-          console.log(err);
           var winner = AI.getWinner(game.board);
           if (winner) {
             // the game is finished
             _(game.players).forEach(function(player) {
               var win = player.character == winner;
               if (win) {
-                Player.findOne(player.player, function(err, player_doc) {
+                Player.findById(player.player, function(err, player_doc) {
                   player_doc.wins++;
                   player_doc.save();
                 });
@@ -133,7 +127,7 @@ io.sockets.on('connection', function(socket) {
               });
             });
             _(watchers).forEach(function(watcher) {
-              watcher.socket.emit('stats', getStats(stats));
+              sendStats(watcher.socket);
             });
           } else {
             // find the other player
@@ -159,19 +153,22 @@ io.sockets.on('connection', function(socket) {
   // listen for people connecting from the web
   socket.on('watch', function(data) {
     watchers.push({socket: socket});
+
     // give some intial stats
-    socket.emit('stats', getStats(stats));
+    sendStats(socket);
   });
 });
 
-function getStats(stats) {
-  stats_array = [];
-  for (var name in stats.all()) {
-    console.log(name);
-    stats_array.push({
-      name: name,
-      wins: stats.get(name).wins
+function sendStats(watcher) {
+  Player.find(function(err, players) {
+    var stats = [];
+    _(players).forEach(function (player) {
+      stats.push({
+        name: player.name,
+        wins: player.wins
+      });
     });
-  }
-  return {stats: stats_array};
+
+    watcher.emit('stats', {stats: stats});
+  });
 }
