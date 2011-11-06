@@ -7,8 +7,13 @@ var AI      = require('./lib/tic-tac').AI;
 var _       = require('underscore')._;
 
 var servers = store.index('servers'),
-    games   = store.index('games'),
     stats   = store.index('stats');
+
+var models = require('./lib/models');
+var mongoose = require('mongoose');
+var db = mongoose.createConnection('http://localhost/tic-tac-node');
+var Game = db.model('Game');
+var Player = db.model('Player');
 
 // Queue for managing players waiting to play
 var queue = [];
@@ -54,94 +59,94 @@ app.get('/watch', function(req, res) {
 // socket config
 io.sockets.on('connection', function(socket) {
   socket.on('init', function(data) {
-    // socket has connected for the first time
-    servers.put(data.name, {socket: socket});
+    var player = new Player({name: data.name});
+    player.save();
 
-    // add them to the stats store if they aren't there
-    if (!stats.get(data.name)) {
-      stats.put(data.name, {name: data.name, wins: 0});
-    }
+    // socket has connected for the first time
+    servers.put(player._id, {socket: socket});
 
     // tell the player that everything went ok
     socket.emit('status', {status: 'success'});
   });
 
   socket.on('queue', function(data) {
-    var incoming = {name: data.name, socket:socket};
-    if (queue.length == 0) {
-      // add player to queue
-      queue.push(incoming);
+    Player.findOne({name: data.name}, function(err, player) {
+      if (player) {
+        if (queue.length == 0) {
+          // add player to queue
+          queue.push(player);
+          var player_socket = servers.get(player._id).socket;
+          player_socket.emit('status', {status: 'waiting'});
+        } else {
+          var queued_player = queue.pop();
 
-      // tell the player to wait for another game to start
-      socket.emit('status', {status: 'waiting'});
-    } else {
-      // if there is another player, notify them it is their turn
-      var player = queue.pop();
+          var game = new Game();
+          game.players.push({character: 'x', player:queued_player._id});
+          console.log(queued_player);
+          game.players.push({character: 'o', player:player._id});
 
-      // set up the characters for each player
-      player.character = 'x';
-      incoming.character = 'o';
+          game.save(function(err) {
+            console.log(err);
+          });
 
-      var gameId = uuid();
-
-      var players = {};
-      players[player.name] = player;
-      players[incoming.name] = incoming;
-
-      // persist the game
-      games.put(gameId, {
-        gameId: gameId,
-        players: players,
-        board: [
-          [null,null,null],
-          [null,null,null],
-          [null,null,null] ]
-      });
-
-      player.socket.emit('turn', {
-        gameId: gameId,
-        board: games.get(gameId).board
-      });
-    }
+          console.log(game);
+          var player_socket = servers.get(queued_player._id).socket;
+          player_socket.emit('turn', {
+            gameId: game._id,
+            board: game.board,
+            character: 'x'
+          });
+        }
+      }
+    });
   });
 
   socket.on('move', function(data) {
-    var game = games.get(data.gameId);
-    game.board[data.move.y][data.move.x] = game.players[data.name].character;
-    games.put(data.gameId, game);
-
-    var winner = AI.getWinner(game.board);
-    if (winner) {
-      // the game is finished
-      _(game.players).forEach(function(player) {
-        var win = player.character == winner;
-        if (win) {
-          stats.get(player.name).wins++;
+    Game.findById(data.gameId, function(err, game) {
+      game.board[data.move.y][data.move.x] = 'x';
+      game.markModified('board');
+      game.save(function (err) {
+        console.log(err);
+        var winner = AI.getWinner(game.board);
+        if (winner) {
+          // the game is finished
+          _(game.players).forEach(function(player) {
+            var win = player.character == winner;
+            if (win) {
+              Player.findOne(player.player, function(err, player_doc) {
+                player_doc.wins++;
+                player_doc.save();
+              });
+            }
+            servers.get(player.player).socket.emit('done', {
+              win: win,
+              gameId: game.gameId,
+              board: game.board
+            });
+          });
+          _(watchers).forEach(function(watcher) {
+            watcher.socket.emit('stats', getStats(stats));
+          });
+        } else {
+          // find the other player
+          Player.findOne({name: data.name}, function(err, player) {
+            var other;
+            for (var i=0; i<game.players.length; i++) {
+              if (game.players[i].player.toString() != player._id.toString()) {
+                other = game.players[i];
+                break;
+              }
+            }
+            var other_socket = servers.get(other.player).socket;
+            other_socket.emit('turn', {
+              gameId: data.gameId,
+              board: game.board,
+              character: player.character
+            });
+          });
         }
-        player.socket.emit('done', {
-          win: win,
-          gameId: game.gameId,
-          board: game.board
-        });
-      });
-      _(watchers).forEach(function(watcher) {
-        watcher.socket.emit('stats', getStats(stats));
-      });
-    } else {
-      // find the other player
-      var other;
-      for (var player in game.players) {
-        if (player != data.name) {
-          other = game.players[player];
-        }
-      }
-
-      // send "turn" event to other player
-      other.socket.emit('turn', {
-        gameId: data.gameId,
-        board: game.board
-      });
-    }
+      });   
+    });
   });
 
   // listen for people connecting from the web
