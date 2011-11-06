@@ -103,33 +103,40 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('move', function(data) {
     Game.findById(data.gameId, function(err, game) {
-      game.board[data.move.y][data.move.x] = 'x';
-      game.markModified('board');
-      game.save(function (err) {
-        console.log(err);
-        var winner = AI.getWinner(game.board);
-        if (winner) {
-          // the game is finished
-          _(game.players).forEach(function(player) {
-            var win = player.character == winner;
-            if (win) {
-              Player.findOne(player.player, function(err, player_doc) {
-                player_doc.wins++;
-                player_doc.save();
+      Player.findOne({name:data.name}, function(err, player) {
+        var game_player;
+        for (var i = 0; i < game.players.length; i++) {
+          if (game.players[i].player.toString() == player._id.toString()) {
+            game_player = game.players[i];
+            break;
+          }
+        };
+        game.board[data.move.y][data.move.x] = game_player.character;
+        game.markModified('board');
+        game.save(function (err) {
+          console.log(err);
+          var winner = AI.getWinner(game.board);
+          if (winner) {
+            // the game is finished
+            _(game.players).forEach(function(player) {
+              var win = player.character == winner;
+              if (win) {
+                Player.findOne(player.player, function(err, player_doc) {
+                  player_doc.wins++;
+                  player_doc.save();
+                });
+              }
+              servers.get(player.player).socket.emit('done', {
+                win: win,
+                gameId: game.gameId,
+                board: game.board
               });
-            }
-            servers.get(player.player).socket.emit('done', {
-              win: win,
-              gameId: game.gameId,
-              board: game.board
             });
-          });
-          _(watchers).forEach(function(watcher) {
-            watcher.socket.emit('stats', getStats(stats));
-          });
-        } else {
-          // find the other player
-          Player.findOne({name: data.name}, function(err, player) {
+            _(watchers).forEach(function(watcher) {
+              watcher.socket.emit('stats', getStats(stats));
+            });
+          } else {
+            // find the other player
             var other;
             for (var i=0; i<game.players.length; i++) {
               if (game.players[i].player.toString() != player._id.toString()) {
@@ -143,9 +150,9 @@ io.sockets.on('connection', function(socket) {
               board: game.board,
               character: player.character
             });
-          });
-        }
-      });   
+          }
+        });  
+      });
     });
   });
 
