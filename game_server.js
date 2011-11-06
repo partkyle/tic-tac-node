@@ -145,7 +145,7 @@ io.sockets.on('connection', function(socket) {
               character: player.character
             });
           }
-        });  
+        });
       });
     });
   });
